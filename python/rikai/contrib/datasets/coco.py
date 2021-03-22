@@ -22,19 +22,13 @@ from __future__ import annotations
 import json
 import os
 from itertools import islice
+from pathlib import Path
 from typing import Optional
 
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col, lit
-from pyspark.sql.types import (
-    ArrayType,
-    FloatType,
-    IntegerType,
-    LongType,
-    StringType,
-    StructField,
-    StructType,
-)
+from pyspark.sql.types import (ArrayType, FloatType, IntegerType, LongType,
+                               StringType, StructField, StructType)
 
 try:
     from pycocotools.coco import COCO
@@ -113,7 +107,7 @@ def convert(
             annotations = coco.loadAnns(ann_id)
             annos = []
             for ann in annotations:
-                bbox = Box2d(*ann["bbox"])
+                bbox = Box2d.from_top_left(*ann["bbox"])
                 annos.append(
                     {
                         "category_id": ann["category_id"],
