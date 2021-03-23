@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+#
 #  Copyright 2021 Rikai Authors
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,9 +17,13 @@
 import argparse
 
 from pyspark.sql import SparkSession
+import torch
+from torch.utils.data import DataLoader
+from torchvision import transforms as T
 
 from rikai.contrib.datasets.coco import convert
 from rikai.logging import logger
+from rikai.torch.data import Dataset
 
 
 def coco_convert(args):
@@ -63,14 +68,36 @@ def coco_convert(args):
     df.write.format("rikai").save(args.output)
 
 
+def train(args):
+    print(args.dataset)
+    dataset = Dataset(args.dataset, columns=["image"])
+    print(next(iter(dataset)))
+
+    model = torch.hub.load("ultralytics/yolov5", "yolov5s")
+
+    transform = T.Compose([T.Resize(640), T.ToTensor()])
+    loader = DataLoader(dataset, num_workers=8, batch_size=4)
+    step = 0
+    for batch in loader:
+        step += 1
+        if step > args.step:
+            break
+
+
 def main():
     parser = argparse.ArgumentParser()
 
     subparsers = parser.add_subparsers(help="sub commands")
+
     parser_convert = subparsers.add_parser("datagen", help="data generation")
     parser_convert.add_argument("dataset", help="dataset root directory")
     parser_convert.add_argument("output", help="output directory")
     parser_convert.set_defaults(func=coco_convert)
+
+    parser_train = subparsers.add_parser("train", help="train")
+    parser_train.add_argument("dataset")
+    parser_train.add_argument("--steps", default=1000, type=int)
+    parser_train.set_defaults(func=train)
 
     args = parser.parse_args()
     args.func(args)
