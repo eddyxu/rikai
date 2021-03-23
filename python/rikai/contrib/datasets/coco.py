@@ -20,15 +20,21 @@ https://cocodataset.org/#home
 from __future__ import annotations
 
 import json
-import os
 from itertools import islice
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql.functions import col, lit
-from pyspark.sql.types import (ArrayType, FloatType, IntegerType, LongType,
-                               StringType, StructField, StructType)
+from pyspark.sql.functions import col, lit, pandas_udf
+from pyspark.sql.types import (
+    ArrayType,
+    FloatType,
+    IntegerType,
+    LongType,
+    StringType,
+    StructField,
+    StructType,
+)
 
 try:
     from pycocotools.coco import COCO
@@ -51,7 +57,7 @@ def load_categories(annotation_file):
 
 def convert(
     spark: SparkSession,
-    dataset_root: str,
+    dataset_root: Union[str, Path],
     limit: int = 0,
     asset_dir: Optional[str] = None,
 ) -> DataFrame:
@@ -85,12 +91,9 @@ def convert(
     DataFrame
         Returns a Spark DataFrame
     """
-    train_json = os.path.join(
-        dataset_root, "annotations", "instances_train2017.json"
-    )
-    val_json = os.path.join(
-        dataset_root, "annotations", "instances_val2017.json"
-    )
+    dataset_root = Path(dataset_root)
+    train_json = str(dataset_root / "annotations" / "instances_train2017.json")
+    val_json = str(dataset_root / "annotations" / "instances_val2017.json")
 
     categories = load_categories(train_json)
 
@@ -123,14 +126,7 @@ def convert(
                 "image_id": image_id,
                 "annotations": annos,
                 "image": Image(
-                    os.path.abspath(
-                        os.path.join(
-                            os.curdir,
-                            "dataset",
-                            "{}2017".format(split),
-                            image_payload["file_name"],
-                        )
-                    )
+                    dataset_root / f"{split}2017" / image_payload["file_name"]
                 ),
                 "split": split,
             }

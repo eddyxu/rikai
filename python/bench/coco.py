@@ -67,7 +67,7 @@ def main():
     parser = argparse.ArgumentParser()
 
     subparsers = parser.add_subparsers(help="sub commands")
-    parser_convert = subparsers.add_parser("convert", help="data generation")
+    parser_convert = subparsers.add_parser("datagen", help="data generation")
     parser_convert.add_argument("dataset", help="dataset root directory")
     parser_convert.add_argument("output", help="output directory")
     parser_convert.set_defaults(func=coco_convert)
