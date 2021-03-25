@@ -84,7 +84,6 @@ def collate_fn(batch):
 
 
 def train(args):
-    print(args.dataset)
     dataset = Dataset(args.dataset, columns=["image"])
     # print(next(iter(dataset)))
 
@@ -96,14 +95,21 @@ def train(args):
     loader = DataLoader(
         dataset,
         num_workers=args.num_workers,
-        batch_size=4,
+        batch_size=args.batch_size,
         collate_fn=collate_fn,
+        pin_memory=True,
+        prefetch_factor=8,
     )
+    model.eval()
     steps = 0
     for batch in loader:
         steps += 1
-        if steps > args.steps:
+        if args.steps > 0 and steps > args.steps:
             break
+        try:
+            predicts = model(batch)
+        except ValueError as e:
+            print("pass one batch: ", e)
 
 
 def main():
@@ -118,8 +124,9 @@ def main():
 
     parser_train = subparsers.add_parser("train", help="train")
     parser_train.add_argument("dataset")
-    parser_train.add_argument("--steps", default=1000, type=int)
+    parser_train.add_argument("--steps", default=0, type=int)
     parser_train.add_argument("-w", "--num_workers", default=8, type=int)
+    parser_train.add_argument("-b", "--batch_size", default=16, type=int)
     parser_train.set_defaults(func=train)
 
     args = parser.parse_args()
