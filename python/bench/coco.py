@@ -68,19 +68,41 @@ def coco_convert(args):
     df.write.format("rikai").save(args.output)
 
 
+class _Dataset(torch.utils.data.IterableDataset):
+    def __init__(self, dataset, transform):
+        self.dataset = dataset
+        self.transform = transform
+
+    def __iter__(self):
+        for row in self.dataset:
+            # print(row["image"])
+            yield self.transform(row["image"])
+
+
+def collate_fn(batch):
+    return batch
+
+
 def train(args):
     print(args.dataset)
     dataset = Dataset(args.dataset, columns=["image"])
-    print(next(iter(dataset)))
+    # print(next(iter(dataset)))
 
     model = torch.hub.load("ultralytics/yolov5", "yolov5s")
 
-    transform = T.Compose([T.Resize(640), T.ToTensor()])
-    loader = DataLoader(dataset, num_workers=8, batch_size=4)
-    step = 0
+    transform = T.Compose([T.ToPILImage(), T.Resize((640, 640)), T.ToTensor()])
+    dataset = _Dataset(dataset, transform)
+
+    loader = DataLoader(
+        dataset,
+        num_workers=args.num_workers,
+        batch_size=4,
+        collate_fn=collate_fn,
+    )
+    steps = 0
     for batch in loader:
-        step += 1
-        if step > args.step:
+        steps += 1
+        if steps > args.steps:
             break
 
 
@@ -97,6 +119,7 @@ def main():
     parser_train = subparsers.add_parser("train", help="train")
     parser_train.add_argument("dataset")
     parser_train.add_argument("--steps", default=1000, type=int)
+    parser_train.add_argument("-w", "--num_workers", default=8, type=int)
     parser_train.set_defaults(func=train)
 
     args = parser.parse_args()
