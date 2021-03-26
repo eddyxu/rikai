@@ -15,10 +15,13 @@
 #  limitations under the License.
 
 import argparse
+from os import curdir
+import time
 
-from pyspark.sql import SparkSession
 import torch
+from pyspark.sql import SparkSession
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms as T
 
 from rikai.contrib.datasets.coco import convert
@@ -87,7 +90,9 @@ def train(args):
     dataset = Dataset(args.dataset, columns=["image"])
     # print(next(iter(dataset)))
 
-    model = torch.hub.load("ultralytics/yolov5", "yolov5s")
+    model = torch.hub.load("ultralytics/yolov5", "yolov5x")
+
+    writer = SummaryWriter()
 
     transform = T.Compose([T.ToPILImage(), T.Resize((640, 640)), T.ToTensor()])
     dataset = _Dataset(dataset, transform)
@@ -102,6 +107,10 @@ def train(args):
     )
     model.eval()
     steps = 0
+    total = 0
+    start = time.time()
+    last_check = 0
+    last_check_time = start
     for batch in loader:
         steps += 1
         if args.steps > 0 and steps > args.steps:
@@ -110,6 +119,22 @@ def train(args):
             predicts = model(batch)
         except ValueError as e:
             print("pass one batch: ", e)
+        total += args.batch_size
+        if total > last_check + 100:
+            now = time.time()
+            cur_time = now - start
+            writer.add_scalar("total", total, cur_time)
+            writer.add_scalar(
+                "speed",
+                (total - last_check) / (now - last_check_time),
+                cur_time,
+            )
+            logger.info(
+                f"Processed total={total}, {(total - last_check)/(now - last_check_time):0.2f} examples/sec"
+            )
+            last_check = total
+            last_check_time = now
+    writer.close()
 
 
 def main():
