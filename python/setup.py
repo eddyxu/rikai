@@ -24,6 +24,7 @@ dev = [
     "wheel",
 ]
 torch = ["torch>=1.4.0", "torchvision==0.8.1"]
+tensorflow = ["tensorflow>=2.0"]
 jupyter = ["matplotlib", "jupyterlab"]
 aws = ["boto3"]
 gcp = ["gcsfs"]
@@ -31,7 +32,7 @@ docs = ["sphinx"]
 video = ["ffmpeg-python", "scenedetect"]
 youtube = ["pafy", "youtube_dl"]
 mlflow = ["mlflow>=1.15"]
-all = torch + jupyter + gcp + docs + video + youtube + mlflow + aws
+all = torch + tensorflow + jupyter + gcp + docs + video + youtube + mlflow + aws
 
 
 setup(
@@ -68,6 +69,7 @@ setup(
         "jupyter": jupyter,
         "mlflow": mlflow,
         "pytorch": torch,
+        "tensorflow": tensorflow,
         "video": video,
         "youtube": youtube,
         "aws": aws,
