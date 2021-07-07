@@ -79,7 +79,7 @@ class Dataset(IterableDataset):
     def __init__(
         self,
         data_ref: Union[str, Path, "pyspark.sql.DataFrame"],
-        columns: List[str] = None,
+        columns: Optional[List[str]] = None,
         transform: Callable = RikaiToTensor(),
     ):
         super().__init__()
