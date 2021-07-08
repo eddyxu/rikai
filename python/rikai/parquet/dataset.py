@@ -18,9 +18,11 @@
 # Standard Library
 import importlib
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional, Union
 
 # Third Party
+import numpy as np
+import pandas as pd
 import pyarrow.parquet as pg
 from pyarrow.fs import FileSystem
 from pyspark.ml.linalg import Matrix, Vector
@@ -30,10 +32,31 @@ from pyspark.sql.types import UserDefinedType
 # Rikai
 from rikai.io import open_input_stream
 from rikai.logging import logger
+from rikai.mixin import ToNumpy, ToPIL
 from rikai.parquet.resolver import Resolver
 from rikai.parquet.shuffler import RandomShuffler
 
 __all__ = ["Dataset"]
+
+
+def _convert_tensor(row, use_pil: bool = False):
+    """Convert a parquet row into rikai semantic objects."""
+    if not isinstance(row, (Mapping, pd.Series)):
+        # Primitive values
+        return row
+    tensors = {}
+    for key, value in row.items():
+        if isinstance(value, dict):
+            tensors[key] = _convert_tensor(value)
+        elif isinstance(value, (list, tuple)):
+            tensors[key] = np.array([_convert_tensor(elem) for elem in value])
+        elif use_pil and isinstance(value, ToPIL):
+            tensors[key] = value.to_pil()
+        elif isinstance(value, ToNumpy):
+            tensors[key] = value.to_numpy()
+        else:
+            tensors[key] = value
+    return tensors
 
 
 class Dataset:
@@ -90,6 +113,7 @@ class Dataset:
         seed: Optional[int] = None,
         world_size: int = 1,
         rank: int = 0,
+        convert_tensor: bool = False,
     ):
         self.uri = str(query)
         self.columns = columns
@@ -110,6 +134,7 @@ class Dataset:
         if self.rank == 0:
             logger.info("Loading parquet files: %s", self.files)
 
+        self.convert_tensor = convert_tensor
         self.spark_row_metadata = Resolver.get_schema(self.uri)
 
     def __repr__(self) -> str:
@@ -183,6 +208,8 @@ class Dataset:
             else:
                 converted[name] = raw_row[name]
 
+        if self.convert_tensor:
+            converted = _convert_tensor(converted)
         return converted
 
     def __iter__(self):
