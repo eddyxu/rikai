@@ -29,6 +29,7 @@ def test_load_dataset(spark: SparkSession, tmp_path: Path):
         )
         expected.append({"id": i, "array": array, "image": image_data})
     df = spark.createDataFrame(data)
+    print(df.schema)
 
     df.write.mode("overwrite").format("rikai").save(str(dataset_dir))
 

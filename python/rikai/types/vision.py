@@ -21,7 +21,7 @@ from __future__ import annotations
 from io import BytesIO, IOBase
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import List, Optional, Sequence, Union
+from typing import List, Optional, Sequence, Tuple, Union
 from urllib.parse import urlparse
 
 # Third-party libraries
@@ -55,6 +55,7 @@ class Image(ToNumpy, ToPIL, Asset, Displayable):
     def __init__(
         self,
         image: Union[bytes, bytearray, IOBase, str, Path],
+        shape: Tuple[int] = (None, None, None),
     ):
         data, uri = None, None
         if isinstance(image, IOBase):
@@ -64,6 +65,7 @@ class Image(ToNumpy, ToPIL, Asset, Displayable):
         else:
             uri = image
         super().__init__(data=data, uri=uri)
+        self.shape = shape
 
     @classmethod
     def from_array(

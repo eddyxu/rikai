@@ -40,6 +40,12 @@ class ImageType(UserDefinedType):
             fields=[
                 StructField("data", BinaryType(), nullable=True),
                 StructField("uri", StringType(), nullable=True),
+                StructField(
+                    "metadata",
+                    StringType(),
+                    nullable=True,
+                    metadata={"shape": [1, 2, 3]},
+                ),
             ]
         )
 
@@ -62,3 +68,17 @@ class ImageType(UserDefinedType):
 
     def simpleString(self) -> str:
         return "ImageType"
+
+    # def jsonValue(self):
+    #     return {
+    #         "type": "udt",
+    #         "class": self.scalaUDT(),
+    #         "pyClass": "%s.%s" % (self.module(), type(self).__name__),
+    #         "sqlType": self.sqlType().jsonValue(),
+    #         "extras": 0,
+    #     }
+
+    # @classmethod
+    # def fromJson(cls, json):
+    #     print("Hey, we try to load JOSN here: ", json)
+    #     return ImageType()

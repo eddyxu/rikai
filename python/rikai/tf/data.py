@@ -17,19 +17,35 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import tensorflow as tf
 
+from rikai.mixin import ToNumpy
 from rikai.parquet.dataset import Dataset
 
 __all__ = ["from_rikai"]
 
 
-def _output_signature(schema: Dict[str, Any]) -> tf.TypeSpec:
-    pass
+def _schema_to_tf_spec(schema: Dict[str, Any]) -> tf.TypeSpec:
+    print("Find schema", schema)
+    if schema == "long":
+        return tf.TensorSpec(shape=(), dtype=tf.int64)
+    elif schema["type"] == "udt":
+        cls = Dataset._find_udt(schema["pyClass"])
+        print("Find class: ", cls, type(cls))
+        # assert isinstance(
+        #     cls, ToNumpy
+        # ), f"We can only load ToNumpy class, but got {cls}"
+        return tf.TensorSpec(shape=(None))
+    else:
+        raise ValueError("")
 
 
 def _get_output_signature(dataset: Dataset) -> Tuple:
     spark_schema = dataset.spark_row_metadata
     assert spark_schema["type"] == "struct"
-    return ()
+    print(spark_schema)
+    return {
+        field["name"]: _schema_to_tf_spec(field["type"])
+        for field in spark_schema["fields"]
+    }
 
 
 def from_rikai(
@@ -65,20 +81,15 @@ def from_rikai(
     ...    .map(my_transform)
     ... )
     """
-    parquet_dataset = Dataset(data_ref, columns=columns, convert_tensor=True)
+    raw_data = Dataset(data_ref, columns=columns, convert_tensor=True)
 
     def gen_impl():
-        for r in parquet_dataset:
-            yield r
+        for row in raw_data:
+            yield row
+
+    signature = _get_output_signature(raw_data)
+    print(signature)
 
     return tf.data.Dataset.from_generator(
-        gen_impl,
-        output_signature={
-            "id": tf.TensorSpec(
-                shape=(),
-                dtype=tf.int32,
-            ),
-            "array": tf.TensorSpec(shape=(None, None), dtype=tf.float32),
-            "image": tf.TensorSpec(shape=(None), dtype=tf.uint8),
-        },
+        gen_impl, output_signature=_get_output_signature(raw_data)
     )
