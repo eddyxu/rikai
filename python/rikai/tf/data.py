@@ -67,12 +67,12 @@ def from_rikai(
     """
     parquet_dataset = Dataset(data_ref, columns=columns, convert_tensor=True)
 
-    def f():
+    def gen_impl():
         for r in parquet_dataset:
             yield r
 
     return tf.data.Dataset.from_generator(
-        f,
+        gen_impl,
         output_signature={
             "id": tf.TensorSpec(
                 shape=(),
