@@ -15,7 +15,7 @@ def test_load_dataset(spark: SparkSession, tmp_path: Path):
 
     expected = []
     data = []
-    for i in range(1000):
+    for i in range(10):
         image_data = np.random.randint(0, 128, size=(128, 128), dtype=np.uint8)
         image_uri = asset_dir / f"{i}.png"
 
@@ -27,12 +27,16 @@ def test_load_dataset(spark: SparkSession, tmp_path: Path):
                 "image": Image.from_array(image_data, image_uri),
             }
         )
+        print(image_data.dtype)
+        print(Image.from_array(image_data, image_uri).to_numpy().dtype)
         expected.append({"id": i, "array": array, "image": image_data})
     df = spark.createDataFrame(data)
     print(df.schema)
+    df.printSchema()
 
     df.write.mode("overwrite").format("rikai").save(str(dataset_dir))
 
     dataset = rikai.tf.data.from_rikai(dataset_dir)
     for a in dataset.take(2):
-        print(a)
+        # print(a)
+        pass

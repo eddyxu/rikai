@@ -106,4 +106,4 @@ class NDArrayType(UserDefinedType):
         )
 
     def simpleString(self) -> str:
-        return "ndarray"
+        return "ndarray(1,2)"

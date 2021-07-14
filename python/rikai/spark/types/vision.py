@@ -27,35 +27,35 @@ __all__ = ["ImageType"]
 class ImageType(UserDefinedType):
     """ImageType defines the Spark UserDefineType for Image type"""
 
-    def __init__(self):
+    def __init__(self, shape=None):
         super().__init__()
         self.codec = "png"
+        self.shape = shape
 
     def __repr__(self) -> str:
         return f"ImageType(codec={self.codec})"
 
     @classmethod
+    def typeName(cls):
+        return "Image"
+
+    @classmethod
     def sqlType(cls) -> StructType:
         return StructType(
             fields=[
-                StructField("data", BinaryType(), nullable=True),
-                StructField("uri", StringType(), nullable=True),
                 StructField(
-                    "metadata",
-                    StringType(),
+                    "data",
+                    BinaryType(),
                     nullable=True,
-                    metadata={"shape": [1, 2, 3]},
+                    metadata={"shape": "[1,2,3]"},
                 ),
+                StructField("uri", StringType(), nullable=True),
             ]
         )
 
     @classmethod
     def module(cls) -> str:
         return "rikai.spark.types.vision"
-
-    @classmethod
-    def scalaUDT(cls) -> str:
-        return "org.apache.spark.sql.rikai.ImageType"
 
     def serialize(self, obj: "Image"):
         """Serialize an Image to a Spark Row?"""

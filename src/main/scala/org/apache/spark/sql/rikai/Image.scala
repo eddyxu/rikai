@@ -27,7 +27,12 @@ private[spark] class ImageType extends UserDefinedType[Image] {
   override def sqlType: DataType =
     StructType(
       Seq(
-        StructField("data", BinaryType, true),
+        StructField(
+          "data",
+          BinaryType,
+          true,
+          new MetadataBuilder().putString("foo", "bar").build
+        ),
         StructField("uri", StringType, true)
       )
     )
